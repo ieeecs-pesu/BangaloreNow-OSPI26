@@ -86,47 +86,47 @@ const MapContent = ({ userLocation, showUserMarker }) => {
   const dragTimeoutRef = useRef(null);
   const zoomTimeoutRef = useRef(null);
 
-  // Handle cluster expansion with proper centering
-  const handleClusterExpansion = useCallback(async (eventId, clusterData) => {
-    const result = await handleMarkerClick(eventId, clusterData);
-    
-    if (result?.action === 'expandCluster' && map) {
-      const cluster = result.data;
-      
-      if (!cluster.events || cluster.events.length === 0) {
-        console.error('❌ No events in cluster');
-        return;
-      }
-      
-      // Create bounds from cluster events
-      const bounds = new window.google.maps.LatLngBounds();
-      let validEvents = 0;
-      
-      cluster.events.forEach(event => {
-        const lat = Number(event.lat);
-        const lng = Number(event.long);
-        if (!isNaN(lat) && !isNaN(lng)) {
-          bounds.extend(new window.google.maps.LatLng(lat, lng));
-          validEvents++;
-        }
-      });
-      
-      if (validEvents === 0) {
-        console.error('❌ No valid coordinates in cluster');
-        return;
-      }
-      
-      // Calculate center of cluster
-      const center = bounds.getCenter();
-      
-      // Zoom aggressively to break clusters apart
-      const currentZoom = map.getZoom();
-      const targetZoom = Math.max(14, currentZoom + 3); // Ensure we reach zoom 14+ to disable clustering
-      
-      map.setCenter(center);
-      map.setZoom(targetZoom);
-    }
-  }, [handleMarkerClick, map]);
+  // Handle cluster expansion with proper centering - COMMENTED OUT TO DISABLE CLUSTERING
+  // const handleClusterExpansion = useCallback(async (eventId, clusterData) => {
+  //   const result = await handleMarkerClick(eventId, clusterData);
+  //   
+  //   if (result?.action === 'expandCluster' && map) {
+  //     const cluster = result.data;
+  //     
+  //     if (!cluster.events || cluster.events.length === 0) {
+  //       console.error('❌ No events in cluster');
+  //       return;
+  //     }
+  //     
+  //     // Create bounds from cluster events
+  //     const bounds = new window.google.maps.LatLngBounds();
+  //     let validEvents = 0;
+  //     
+  //     cluster.events.forEach(event => {
+  //       const lat = Number(event.lat);
+  //       const lng = Number(event.long);
+  //       if (!isNaN(lat) && !isNaN(lng)) {
+  //         bounds.extend(new window.google.maps.LatLng(lat, lng));
+  //         validEvents++;
+  //       }
+  //     });
+  //     
+  //     if (validEvents === 0) {
+  //       console.error('❌ No valid coordinates in cluster');
+  //       return;
+  //     }
+  //     
+  //     // Calculate center of cluster
+  //     const center = bounds.getCenter();
+  //     
+  //     // Zoom aggressively to break clusters apart
+  //     const currentZoom = map.getZoom();
+  //     const targetZoom = Math.max(14, currentZoom + 3); // Ensure we reach zoom 14+ to disable clustering
+  //     
+  //     map.setCenter(center);
+  //     map.setZoom(targetZoom);
+  //   }
+  // }, [handleMarkerClick, map]);
 
   // Optimized bounds handling - no marker refresh triggers
   const handleBoundsChanged = useCallback(() => {
@@ -232,11 +232,12 @@ const MapContent = ({ userLocation, showUserMarker }) => {
           isSelected={selectedEventId === event.id}
           eventDetails={selectedEventDetails}
           isLoadingDetails={isLoadingDetails}
-          onMarkerClick={handleClusterExpansion}
+          onMarkerClick={handleMarkerClick} // Direct marker click without clustering
           onInfoClose={handleInfoClose}
-          isCluster={event.isCluster}
-          clusterCount={event.count}
-          clusterData={event}
+          // Clustering disabled - commented out cluster props
+          // isCluster={event.isCluster}
+          // clusterCount={event.count}
+          // clusterData={event}
         />
       ))}
     </>
