@@ -56,6 +56,15 @@ def push_events_to_supabase():
         # Replace NaN and Infinity with None for JSON compatibility
         df.replace([np.inf, -np.inf, np.nan], None, inplace=True)
 
+        # Ensure we have an idempotent conflict key for upserts.
+        # The DB schema created in dbconfig/create.sql uses source_url as a UNIQUE key.
+        # Older data sources may only have `url`, so we use that as a fallback.
+        if "source_url" not in df.columns:
+            if "url" in df.columns:
+                df["source_url"] = df["url"]
+            else:
+                df["source_url"] = None
+
         # Convert DataFrame to list of dictionaries
         events_data = df.to_dict(orient='records')
 
@@ -63,8 +72,12 @@ def push_events_to_supabase():
         supabase: Client = create_client(supabase_url, supabase_key)
         logger.info("Connected to Supabase successfully")
 
-        # Upsert data to Supabase
-        response = supabase.table(table_name).upsert(events_data).execute()
+        # Upsert data to Supabase (idempotent on source_url)
+        response = (
+            supabase.table(table_name)
+            .upsert(events_data, on_conflict="source_url")
+            .execute()
+        )
 
 
         # Check for errors in the response
