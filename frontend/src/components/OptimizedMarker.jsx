@@ -1,10 +1,10 @@
-import React, { useCallback, useState, useRef, memo } from "react";
-import { AdvancedMarker, Pin, useMap } from "@vis.gl/react-google-maps";
+import React, { useCallback, useState, memo, useMemo } from "react";
+import { Marker, Popup } from "react-leaflet";
+import L from "leaflet";
 import MarkerInfoWindow from "./MarkerInfoWindow.jsx";
 
 /**
- * Highly optimized marker component with zero unnecessary re-renders
- * and smart info window positioning
+ * Highly optimized marker component for Leaflet
  */
 const OptimizedMarker = memo(({ 
   position, 
@@ -17,62 +17,9 @@ const OptimizedMarker = memo(({
   isCluster = false,
   clusterCount = 0,
   clusterData = null,
-  currentZoom = 12
+  currentZoom = 8
 }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const infoWindowRef = useRef(null);
-  const map = useMap();
-
-  // Calculate info window position to always stay in viewport
-  const calculateInfoWindowPosition = useCallback(() => {
-    if (!map || !isSelected) return { x: 0, y: -250, below: false };
-    
-    try {
-      const mapDiv = map.getDiv();
-      if (!mapDiv) return { x: 0, y: -250, below: false };
-      
-      const bounds = map.getBounds();
-      if (!bounds) return { x: 0, y: -250, below: false };
-      
-      const mapRect = mapDiv.getBoundingClientRect();
-      
-      // Get marker screen position
-      const sw = bounds.getSouthWest();
-      const ne = bounds.getNorthEast();
-      
-      const relativeX = (position.lng - sw.lng()) / (ne.lng() - sw.lng());
-      const relativeY = (ne.lat() - position.lat) / (ne.lat() - sw.lat());
-      
-      const screenX = relativeX * mapRect.width;
-      const screenY = relativeY * mapRect.height;
-      
-      // Info window dimensions
-      const INFO_WIDTH = 480;
-      const INFO_HEIGHT = 250;
-      const PADDING = 30;
-      
-      let x = 0;
-      let y = -50; // Default: close to marker (was -INFO_HEIGHT - 30)
-      let below = false;
-      
-      // Vertical: Only move below if very close to top edge
-      if (screenY < 100) { // More restrictive threshold (was INFO_HEIGHT + PADDING)
-        y = 40; // Position below marker
-        below = true;
-      }
-      
-      // Horizontal: Keep within bounds
-      if (screenX < INFO_WIDTH / 2 + PADDING) {
-        x = -(screenX - INFO_WIDTH / 2 - PADDING);
-      } else if (screenX > mapRect.width - INFO_WIDTH / 2 - PADDING) {
-        x = mapRect.width - screenX - INFO_WIDTH / 2 - PADDING;
-      }
-      
-      return { x, y, below };
-    } catch (error) {
-      return { x: 0, y: -250, below: false };
-    }
-  }, [map, position, isSelected]);
 
   const handleClick = useCallback(() => {
     if (onMarkerClick) {
@@ -83,79 +30,91 @@ const OptimizedMarker = memo(({
   const handleMouseEnter = useCallback(() => setIsHovered(true), []);
   const handleMouseLeave = useCallback(() => setIsHovered(false), []);
 
-  // Calculate position for info window
-  const infoPosition = isSelected ? calculateInfoWindowPosition() : null;
+  // Create custom marker icon
+  const markerIcon = useMemo(() => {
+    if (isCluster) {
+      // Cluster marker
+      return L.divIcon({
+        className: 'cluster-marker',
+        html: `
+          <div style="
+            width: ${Math.min(40 + clusterCount * 2, 60)}px;
+            height: ${Math.min(40 + clusterCount * 2, 60)}px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border: 3px solid white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            font-weight: bold;
+            color: white;
+            font-size: 16px;
+          ">
+            ${clusterCount}
+          </div>
+        `,
+        iconSize: [Math.min(40 + clusterCount * 2, 60), Math.min(40 + clusterCount * 2, 60)],
+        iconAnchor: [Math.min(20 + clusterCount, 30), Math.min(20 + clusterCount, 30)],
+      });
+    } else {
+      // Single event marker
+      const scale = isSelected ? 1.2 : (isHovered ? 1.1 : 1);
+      const baseSize = 36;
+      const size = baseSize * scale;
+      
+      return L.divIcon({
+        className: 'event-marker',
+        html: `
+          <div class="event-marker-pin" style="
+            width: ${size}px;
+            height: ${size}px;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            border: 3px solid white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
+          ">
+            <div class="event-marker-inner" style="color: white; font-size: 16px;">
+              📍
+            </div>
+          </div>
+        `,
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size],
+        popupAnchor: [0, -size],
+      });
+    }
+  }, [isCluster, clusterCount, isSelected, isHovered]);
 
   return (
-    <>
-      {/* Main marker */}
-      <AdvancedMarker
-        position={position}
-        onClick={handleClick}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        zIndex={isSelected ? 9999 : 100}
-      >
-        {isCluster ? (
-          // Cluster marker with original green color scheme
-          <div 
-            className="relative flex items-center justify-center rounded-full border-2 border-white shadow-lg text-white font-bold"
-            style={{
-              width: isSelected ? '40px' : '36px',
-              height: isSelected ? '40px' : '36px',
-              fontSize: clusterCount > 99 ? '10px' : '12px',
-              transform: `scale(${isHovered ? 1.1 : 1})`,
-              transition: 'all 0.2s ease',
-              backgroundColor: isSelected 
-                ? `hsl(var(--marker-primary-selected))`
-                : isHovered 
-                ? `hsl(var(--marker-primary-hover))`
-                : `hsl(var(--marker-primary))`,
-              boxShadow: isSelected 
-                ? `0 0 15px hsla(var(--marker-glow), 0.8), 0 0 30px hsla(var(--marker-glow), 0.4)`
-                : isHovered 
-                ? `0 0 10px hsla(var(--marker-glow), 0.6)`
-                : `0 0 5px hsla(var(--marker-glow), 0.4)`
-            }}
-          >
-            {clusterCount > 999 ? '999+' : clusterCount}
-          </div>
-        ) : (
-          // Regular marker with original green Pin
-          <Pin
-            background={`hsl(var(--marker-primary))`}
-            borderColor="white"
-            glyphColor="white"
-            scale={isSelected ? 1.3 : isHovered ? 1.1 : 1}
-          />
-        )}
-      </AdvancedMarker>
-
-      {/* Info window with smart positioning */}
-      {isSelected && !isCluster && infoPosition && (
-        <AdvancedMarker
-          position={position}
-          zIndex={10000}
+    <Marker
+      position={[position.lat, position.lng]}
+      icon={markerIcon}
+      eventHandlers={{
+        click: handleClick,
+        mouseover: handleMouseEnter,
+        mouseout: handleMouseLeave,
+      }}
+      zIndexOffset={isSelected ? 1000 : 100}
+    >
+      {isSelected && (
+        <Popup
+          closeButton={false}
+          autoClose={false}
+          closeOnClick={false}
+          className="custom-popup"
+          maxWidth={500}
+          minWidth={280}
         >
-          <div 
-            ref={infoWindowRef}
-            style={{
-              transform: `translate(${infoPosition.x}px, ${infoPosition.y}px)`,
-              transition: 'transform 0.3s ease-out'
-            }}
-            className="relative"
-          >
-            <MarkerInfoWindow
-              event={eventDetails}
-              onClose={onInfoClose}
-              isLoading={isLoadingDetails}
-              isCached={!!eventDetails}
-              isPositionedBelow={infoPosition.below}
-            />
-          </div>
-        </AdvancedMarker>
+          <MarkerInfoWindow
+            event={eventDetails}
+            onClose={onInfoClose}
+            isLoading={isLoadingDetails}
+            isCached={false}
+          />
+        </Popup>
       )}
-    </>
+    </Marker>
   );
 });
 
