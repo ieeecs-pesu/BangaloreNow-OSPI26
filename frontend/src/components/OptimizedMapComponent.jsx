@@ -1,7 +1,8 @@
 import React, { useEffect, useCallback, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
-import { MapStateProvider, useMapState } from './MapStateProvider.jsx';
+import { MapStateProvider } from './MapStateProvider.jsx';
+import { useMapState } from './mapStateContext.js';
 import OptimizedMarker from './OptimizedMarker.jsx';
 import MapErrorBoundary from './MapErrorBoundary.jsx';
 import Navbar from './Navbar.jsx';
@@ -277,6 +278,6 @@ const OptimizedMapComponent = () => {
       </div>
     </MapStateProvider>
   );
-};
+}
 
 export default OptimizedMapComponent;

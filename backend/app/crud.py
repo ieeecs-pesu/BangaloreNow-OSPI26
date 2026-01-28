@@ -1,36 +1,19 @@
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import select, func
-from datetime import datetime, timedelta, timezone
 from app.model import Event
 from app.schemas import EventBase, EventDetails
-from app.core.config import settings
 
 def get_all_events(session: Session) -> list[EventBase]:
     """Get all events with their coordinates - only requires name, lat, long to be non-null"""
-    # Get current date in UTC timezone to match timestamptz
-    today = datetime.now(timezone.utc).date()
-    end_date = today + timedelta(days=settings.EVENT_DAYS_DELTA)
     
-    # Use a subquery to get distinct event names with their minimum ID (consistent selection)
-    distinct_events_subquery = session.execute(
-        select(func.min(Event.id).label('id'))
-        .group_by(Event.name)
-        # More flexible date filtering - include events with null dates or within range
+    # Get all events with non-null coordinates, regardless of date
+    result = session.execute(
+        select(Event.id, Event.lat, Event.long)
         .where(
-            # Include events with null startDate OR events within date range
-            (Event.startDate.is_(None)) | 
-            (func.date(Event.startDate) >= today) & (func.date(Event.startDate) <= end_date),
-            # Only require essential fields to be non-null
             Event.lat.is_not(None),
             Event.long.is_not(None),
             Event.name.is_not(None)
         )
-    ).scalars().all()
-    
-    # Get the full event data for these distinct IDs
-    result = session.execute(
-        select(Event.id, Event.lat, Event.long)
-        .where(Event.id.in_(distinct_events_subquery))
     ).mappings().all()
     
     return [EventBase(**row) for row in result]
