@@ -10,7 +10,7 @@ It:
 1) reads the JSON list
 2) maps fields into the backend DB schema
 3) geocodes missing lat/long using Google Geocoding API (env var: base_geo)
-4) upserts into Supabase using a stable unique key: `source_url`
+4) upserts into Supabase using a stable unique key: `url`
 
 Env vars (reads from process env; also loads a repo-root .env if present):
 - SUPABASE_URL
@@ -147,7 +147,8 @@ def _to_db_row(event: dict[str, Any], geocoder: GoogleGeocoder | None) -> dict[s
         return None
 
     url = event.get("event_url") or event.get("source_url")
-    source_url = event.get("source_url") or url
+    if not url:
+        return None
 
     venue = event.get("venue_name")
     address = event.get("venue_address")
@@ -190,7 +191,6 @@ def _to_db_row(event: dict[str, Any], geocoder: GoogleGeocoder | None) -> dict[s
         "lat": lat,
         "long": lng,
         "organizer": event.get("organizer_name"),
-        "source_url": source_url,
     }
 
     return row
@@ -272,8 +272,8 @@ def main(argv: list[str]) -> int:
 
     total_upserted = 0
     for batch in _chunked(rows, args.batch):
-        # Requires unique index on source_url (you added this in dbconfig/create.sql)
-        client.table("events").upsert(batch, on_conflict="source_url").execute()
+        # Requires a UNIQUE index/constraint on (url).
+        client.table("events").upsert(batch, on_conflict="url").execute()
         total_upserted += len(batch)
 
     print(f"Upserted={total_upserted}, skipped={skipped}, input={len(events)}")
