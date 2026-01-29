@@ -1,21 +1,12 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { getApiUrl, API_ENDPOINTS } from '../lib/api.js';
+import { MapStateContext } from './mapStateContext.js';
 
 /**
  * Isolated state management for map interactions
  * Prevents cascading re-renders and prop drilling
  */
-const MapStateContext = createContext();
-
-export const useMapState = () => {
-  const context = useContext(MapStateContext);
-  if (!context) {
-    throw new Error('useMapState must be used within MapStateProvider');
-  }
-  return context;
-};
-
-export const MapStateProvider = ({ children }) => {
+export function MapStateProvider({ children }) {
   // Core marker data - only changes on API calls
   const [events, setEvents] = useState([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
@@ -40,25 +31,36 @@ export const MapStateProvider = ({ children }) => {
   
   // Stable event processing - CLUSTERING DISABLED
   const processedEvents = useMemo(() => {
-    if (!events.length) return [];
+    if (!events.length) {
+      console.log('⚠️  No events to process');
+      return [];
+    }
     
     // Always return individual events without clustering
-    return events.map(event => ({
+    const processed = events.map(event => ({
       ...event,
       position: { lat: Number(event.lat), lng: Number(event.long) },
       isCluster: false
     }));
+    console.log('🎯 Processed events:', processed.length, 'markers');
+    return processed;
   }, [events, currentZoom]);
   
   // API functions
   const fetchEvents = useCallback(async () => {
     try {
       setIsLoadingEvents(true);
-      const response = await fetch(getApiUrl(API_ENDPOINTS.GET_ALL_EVENTS));
+      const url = getApiUrl(API_ENDPOINTS.GET_ALL_EVENTS);
+      console.log('📍 Fetching events from:', url);
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
       const data = await response.json();
+      console.log('✅ Events fetched:', data.length, 'events');
       setEvents(data);
     } catch (error) {
-      console.error('Error fetching events:', error);
+      console.error('❌ Error fetching events:', error);
     } finally {
       setIsLoadingEvents(false);
     }
@@ -189,4 +191,4 @@ export const MapStateProvider = ({ children }) => {
       {children}
     </MapStateContext.Provider>
   );
-};
+}

@@ -13,9 +13,15 @@ def parse_cors(v:Any)->list[str]|str:
     raise ValueError(v)
 
 
+from pathlib import Path
+
+# Always load .env from repo root (three levels up from this file)
+REPO_ROOT = Path(__file__).resolve().parents[3]
+ROOT_ENV_FILE = REPO_ROOT / ".env"
+
 class Settings(BaseSettings):
     model_config=SettingsConfigDict(
-        env_file="./.env",
+        env_file=str(ROOT_ENV_FILE),
         env_ignore_empty=True,
         extra="ignore",
         case_sensitive=False

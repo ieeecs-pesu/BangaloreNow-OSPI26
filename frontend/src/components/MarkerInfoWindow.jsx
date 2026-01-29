@@ -1,5 +1,4 @@
 import React, { memo, useState, useCallback, useEffect } from 'react';
-import { Separator } from '@/components/ui/separator';
 
 const MarkerInfoWindow = memo(({ event, onClose, isLoading, isCached, isPositionedBelow = false }) => {
   const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
@@ -30,16 +29,14 @@ const MarkerInfoWindow = memo(({ event, onClose, isLoading, isCached, isPosition
       document.removeEventListener('click', handleClickOutside);
     };
   }, [isImagePreviewOpen, handleCloseImagePreview]);
+
   const formatDate = (dateString) => {
     try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
+      const date = new Date(dateString);
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+      const datePart = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      const timePart = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+      return `${dayName}, ${datePart} at ${timePart}`;
     } catch (error) {
       return dateString;
     }
@@ -70,27 +67,12 @@ const MarkerInfoWindow = memo(({ event, onClose, isLoading, isCached, isPosition
           borderColor: `hsl(var(--marker-border))`,
           borderWidth: '1px',
           minWidth: '280px',
-          maxWidth: '500px',
-          width: 'clamp(280px, 90vw, 480px)' // Responsive width: 90% of viewport width, min 280px, max 480px
+          maxWidth: '600px',
+          width: 'clamp(280px, 90vw, 580px)'
         }}
       >
-        <div className="p-3 sm:p-4">
-        {/* Header with close button */}
-        <div className="flex justify-between items-start mb-3">
-          <div className="flex items-center space-x-2">
-            {isLoading && !event && (
-              <span 
-                className="text-xs px-2 py-1 rounded-full border transition-colors duration-200"
-                style={{
-                  color: `hsl(var(--marker-text-primary))`,
-                  backgroundColor: `hsla(var(--marker-accent), 0.1)`,
-                  borderColor: `hsl(var(--marker-border))`
-                }}
-              >
-                ⏳ Loading...
-              </span>
-            )}
-          </div>
+        {/* Close button */}
+        <div className="flex justify-end p-2">
           <button
             onClick={onClose}
             className="text-xl font-bold transition-colors duration-200 hover:scale-110 transform"
@@ -98,22 +80,15 @@ const MarkerInfoWindow = memo(({ event, onClose, isLoading, isCached, isPosition
               color: `hsl(var(--marker-text-muted))`,
               cursor: 'pointer'
             }}
-            onMouseEnter={(e) => {
-              e.target.style.color = `hsl(var(--marker-text-secondary))`;
-              e.target.style.cursor = 'pointer';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.color = `hsl(var(--marker-text-muted))`;
-              e.target.style.cursor = 'pointer';
-            }}
+            title="Close"
           >
             ×
           </button>
         </div>
 
         {isLoading && !event ? (
-          // Only show loading spinner when we actually need to load and have no data
-          <div className="flex items-center justify-center py-8">
+          // Loading state
+          <div className="flex items-center justify-center py-8 px-4">
             <div 
               className="animate-spin rounded-full h-8 w-8 border-2 border-solid border-transparent"
               style={{
@@ -126,204 +101,237 @@ const MarkerInfoWindow = memo(({ event, onClose, isLoading, isCached, isPosition
             </span>
           </div>
         ) : event ? (
-          <div className="flex flex-col sm:flex-row sm:space-x-4 space-y-3 sm:space-y-0 min-h-[140px]">
-            {/* Left Side - Image - Responsive */}
-            {event.image && (
-              <div 
-                className="flex-shrink-0 rounded-lg overflow-hidden border hover:shadow-lg transition-all duration-200 hover:scale-[1.02] relative w-full sm:w-[40%] h-32 sm:h-[140px]"
-                style={{
-                  backgroundColor: `hsl(var(--marker-surface))`,
-                  borderColor: `hsl(var(--marker-border))`,
-                  minWidth: '0', // Allow shrinking on mobile
-                  cursor: 'pointer'
-                }}
-                onClick={handleImageClick}
-                title="Click to view larger image"
-              >
-                <img
-                  src={event.image}
-                  alt={event.name}
-                  loading="lazy"
-                  decoding="async"
-                  className="w-full h-full object-cover hover:opacity-90 transition-opacity duration-200"
-                  style={{ cursor: 'pointer' }}
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                  }}
-                />
-                {/* Overlay icon to indicate clickability */}
+          <div className="px-4 pb-4">
+            {/* Two column layout: Left (event info), Right (organizer & details) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              
+              {/* LEFT COLUMN - Event Name and Location/Date */}
+              <div className="space-y-4">
+                {/* Event Name Box */}
                 <div 
-                  className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200 bg-black bg-opacity-20"
-                  style={{ cursor: 'pointer', pointerEvents: 'none' }}
+                  className="p-4 rounded-lg border-2"
+                  style={{
+                    backgroundColor: `hsl(var(--marker-surface))`,
+                    borderColor: `hsl(var(--marker-border))`
+                  }}
                 >
-                  <svg 
-                    className="w-6 h-6 text-white"
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                    style={{ pointerEvents: 'none' }}
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                  </svg>
+                  {event.url ? (
+                    <a
+                      href={event.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-bold text-base leading-tight hover:underline transition-colors"
+                      style={{
+                        color: `hsl(var(--marker-accent))`,
+                        cursor: 'pointer',
+                        display: 'block',
+                        wordBreak: 'break-word'
+                      }}
+                      title={event.name}
+                    >
+                      {event.name}
+                    </a>
+                  ) : (
+                    <h3 
+                      className="font-bold text-base leading-tight"
+                      style={{
+                        color: `hsl(var(--marker-text-primary))`,
+                        wordBreak: 'break-word'
+                      }}
+                      title={event.name}
+                    >
+                      {event.name}
+                    </h3>
+                  )}
+                </div>
+
+                {/* Location and Date/Day Box */}
+                <div 
+                  className="p-4 rounded-lg border-2 min-h-[140px] flex flex-col justify-center"
+                  style={{
+                    backgroundColor: `hsl(var(--marker-surface))`,
+                    borderColor: `hsl(var(--marker-border))`
+                  }}
+                >
+                  {/* Location */}
+                  {(event.venue || event.address) && (
+                    <div className="mb-3">
+                      {event.venue && (
+                        <p 
+                          className="font-semibold text-sm mb-1"
+                          style={{
+                            color: `hsl(var(--marker-text-primary))`,
+                            wordBreak: 'break-word'
+                          }}
+                        >
+                          📍 {event.venue}
+                        </p>
+                      )}
+                      {event.address && (
+                        <p 
+                          className="text-xs"
+                          style={{
+                            color: `hsl(var(--marker-text-secondary))`,
+                            wordBreak: 'break-word'
+                          }}
+                        >
+                          {event.address}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Date and Day */}
+                  {event.startDate && (
+                    <div>
+                      <p 
+                        className="text-xs font-medium"
+                        style={{
+                          color: `hsl(var(--marker-text-secondary))`,
+                          wordBreak: 'break-word'
+                        }}
+                      >
+                        📅 {formatDate(event.startDate)}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
 
-            {/* Right Side - Content - Responsive */}
-            <div 
-              className="space-y-2 sm:space-y-3 overflow-hidden w-full"
-              style={{
-                width: event.image ? '100%' : '100%', // Full width on mobile, 60% on desktop handled by flex classes
-                minWidth: 0 // Allow shrinking
-              }}
-            >
-              {/* Event Title - Clickable if URL exists */}
-              <div className="mb-2">
-                {event.url ? (
-                  <a
-                    href={event.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-semibold transition-colors duration-200 hover:underline text-sm sm:text-sm leading-tight block"
+              {/* RIGHT COLUMN - Organizer & Additional Info */}
+              <div className="space-y-4">
+                {/* Organizer Details Box */}
+                <div 
+                  className="p-4 rounded-lg border-2"
+                  style={{
+                    backgroundColor: `hsl(var(--marker-surface))`,
+                    borderColor: `hsl(var(--marker-border))`
+                  }}
+                >
+                  <h4 
+                    className="font-bold text-sm mb-2"
                     style={{
-                      color: `hsl(var(--marker-accent))`,
-                      cursor: 'pointer',
-                      wordBreak: 'break-word',
-                      overflowWrap: 'break-word'
+                      color: `hsl(var(--marker-text-primary))`
                     }}
-                    onMouseEnter={(e) => {
-                      e.target.style.color = `hsl(var(--marker-primary-hover))`;
-                      e.target.style.cursor = 'pointer';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.color = `hsl(var(--marker-accent))`;
-                      e.target.style.cursor = 'pointer';
-                    }}
-                    title={event.name}
                   >
-                    {event.name}
-                  </a>
-                ) : (
-                  <h3 
-                    className="font-semibold text-sm leading-tight"
-                    style={{
-                      color: `hsl(var(--marker-text-primary))`,
-                      wordBreak: 'break-word',
-                      overflowWrap: 'break-word'
-                    }}
-                    title={event.name}
-                  >
-                    {event.name}
-                  </h3>
-                )}
-              </div>
-
-              {/* Event Description */}
-              {event.description && (
-                <>
-                  <div className="mb-2">
+                    Organiser deets
+                  </h4>
+                  {event.organizer ? (
                     <p 
-                      className="text-xs leading-relaxed line-clamp-3 sm:line-clamp-2 break-words"
+                      className="text-xs"
                       style={{
                         color: `hsl(var(--marker-text-secondary))`,
-                        wordWrap: 'break-word',
-                        overflowWrap: 'break-word'
+                        wordBreak: 'break-word'
+                      }}
+                    >
+                      {event.organizer}
+                    </p>
+                  ) : (
+                    <p 
+                      className="text-xs italic"
+                      style={{
+                        color: `hsl(var(--marker-text-muted))`
+                      }}
+                    >
+                      Not provided
+                    </p>
+                  )}
+                </div>
+
+                {/* Additional Information Box */}
+                <div 
+                  className="p-4 rounded-lg border-2 min-h-[140px] flex flex-col justify-center"
+                  style={{
+                    backgroundColor: `hsl(var(--marker-surface))`,
+                    borderColor: `hsl(var(--marker-border))`
+                  }}
+                >
+                  <h4 
+                    className="font-bold text-sm mb-2"
+                    style={{
+                      color: `hsl(var(--marker-text-primary))`
+                    }}
+                  >
+                    Additional info
+                  </h4>
+                  {event.description ? (
+                    <p 
+                      className="text-xs leading-relaxed line-clamp-4"
+                      style={{
+                        color: `hsl(var(--marker-text-secondary))`,
+                        wordBreak: 'break-word'
                       }}
                     >
                       {event.description}
                     </p>
-                  </div>
-                  <Separator className="my-2" style={{ backgroundColor: `hsl(var(--marker-border))` }} />
-                </>
-              )}
-
-              {/* Event Dates */}
-              {(event.startDate || event.endDate) && (
-                <>
-                  <div className="mb-2">
-                    {event.startDate && (
-                      <div className="text-xs">
-                        <span 
-                          className="font-medium"
-                          style={{
-                            color: `hsl(var(--marker-text-muted))`
-                          }}
-                        >
-                          📅
-                        </span>
-                        <span 
-                          className="ml-1 break-words text-xs"
-                          style={{
-                            color: `hsl(var(--marker-text-secondary))`,
-                            wordWrap: 'break-word',
-                            fontSize: '11px'
-                          }}
-                        >
-                          {formatDate(event.startDate)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <Separator className="my-2" style={{ backgroundColor: `hsl(var(--marker-border))` }} />
-                </>
-              )}
-
-              {/* Venue and Address - Compact */}
-              {(event.venue || event.address) && (
-                <div className="space-y-1">
-                  {event.venue && (
-                    <div className="text-xs">
-                      <span 
-                        className="font-medium"
-                        style={{
-                          color: `hsl(var(--marker-text-muted))`
-                        }}
-                      >
-                        📍
-                      </span>
-                      <span 
-                        className="ml-1 break-words"
-                        style={{
-                          color: `hsl(var(--marker-text-secondary))`,
-                          wordWrap: 'break-word',
-                          overflowWrap: 'break-word'
-                        }}
-                      >
-                        {event.venue}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {event.address && (
-                    <div className="text-xs">
-                      <span 
-                        className="ml-3 break-words block"
-                        style={{
-                          color: `hsl(var(--marker-text-secondary))`,
-                          wordWrap: 'break-word',
-                          overflowWrap: 'break-word'
-                        }}
-                        title={event.address}
-                      >
-                        {event.address}
-                      </span>
-                    </div>
+                  ) : (
+                    <p 
+                      className="text-xs italic"
+                      style={{
+                        color: `hsl(var(--marker-text-muted))`
+                      }}
+                    >
+                      No additional details available
+                    </p>
                   )}
                 </div>
-              )}
+              </div>
+
             </div>
+
+            {/* Event Image - Full Width if available */}
+            {event.image && (
+              <div className="mt-4">
+                <div 
+                  className="rounded-lg overflow-hidden border-2 cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-[1.02] relative"
+                  style={{
+                    backgroundColor: `hsl(var(--marker-surface))`,
+                    borderColor: `hsl(var(--marker-border))`
+                  }}
+                  onClick={handleImageClick}
+                  title="Click to view larger image"
+                >
+                  <div className="relative h-40 sm:h-48 overflow-hidden">
+                    <img
+                      src={event.image}
+                      alt={event.name}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover hover:opacity-90 transition-opacity duration-200"
+                      style={{ cursor: 'pointer' }}
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                    {/* Overlay icon */}
+                    <div 
+                      className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200 bg-black bg-opacity-20"
+                      style={{ cursor: 'pointer', pointerEvents: 'none' }}
+                    >
+                      <svg 
+                        className="w-8 h-8 text-white"
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div 
-            className="text-center py-4"
+            className="text-center py-4 px-4"
             style={{
-              color: `hsl(0 62.8% 50.6%)`  /* Error red color */
+              color: `hsl(0 62.8% 50.6%)`
             }}
           >
             Failed to load event details
           </div>
         )}
-        </div>
       </div>
 
       {/* Image Preview Modal */}
