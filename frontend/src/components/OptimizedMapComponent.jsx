@@ -6,6 +6,11 @@ import { useMapState } from './mapStateContext.js';
 import OptimizedMarker from './OptimizedMarker.jsx';
 import MapErrorBoundary from './MapErrorBoundary.jsx';
 import Navbar from './Navbar.jsx';
+import { FilterPanel } from './FilterPanel.jsx';
+import { EventsList } from './EventsList.jsx';
+import { FilterStatusBar } from './FilterStatusBar.jsx';
+import { Button } from './ui/button.jsx';
+import { Filter, X } from 'lucide-react';
 import '../leaflet-custom.css';
 
 // Fix Leaflet default marker icon issue
@@ -242,41 +247,137 @@ const OptimizedMapComponent = () => {
 
   return (
     <MapStateProvider>
-      <div className="w-full h-screen bg-gray-900 relative" style={{ pointerEvents: 'auto' }}>
-        <MapErrorBoundary>
-          <LoadingOverlay 
-            isGettingLocation={isGettingLocation}
-            locationPermissionDenied={locationPermissionDenied}
-            isMapLoaded={isMapLoaded}
-          />
-          <MapContainer
-            center={mapCenter}
-            zoom={14}
-            minZoom={11}
-            maxZoom={20}
-            zoomControl={true}
-            className="w-full h-full"
-            style={{ pointerEvents: 'auto' }}
-            maxBounds={bangaloreBounds}
-            maxBoundsViscosity={1.0}
-            whenReady={() => setIsMapLoaded(true)}
-          >
-            {/* OpenStreetMap tiles - dark theme */}
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            
-            <MapContent 
-              userLocation={{ lat: mapCenter[0], lng: mapCenter[1] }}
-              showUserMarker={!isGettingLocation && !locationPermissionDenied && (mapCenter[0] !== 12.9716 || mapCenter[1] !== 77.5946)}
-              shouldCenterOnUser={!isGettingLocation && !locationPermissionDenied && (mapCenter[0] !== 12.9716 || mapCenter[1] !== 77.5946)}
-            />
-          </MapContainer>
-          <Navbar />
-        </MapErrorBoundary>
-      </div>
+      <MapContentWrapper 
+        mapCenter={mapCenter}
+        bangaloreBounds={bangaloreBounds}
+        isGettingLocation={isGettingLocation}
+        locationPermissionDenied={locationPermissionDenied}
+        isMapLoaded={isMapLoaded}
+        setIsMapLoaded={setIsMapLoaded}
+      />
     </MapStateProvider>
+  );
+}
+
+// Wrapper to access MapState context
+const MapContentWrapper = ({ 
+  mapCenter, 
+  bangaloreBounds, 
+  isGettingLocation, 
+  locationPermissionDenied, 
+  isMapLoaded,
+  setIsMapLoaded 
+}) => {
+  const {
+    showFilterPanel,
+    setShowFilterPanel,
+    showEventsList,
+    setShowEventsList,
+    searchEvents,
+    clearFilters,
+    userLocation,
+    filteredEvents,
+    activeFilters,
+    handleMarkerClick
+  } = useMapState();
+
+  const handleFilterChange = (filters) => {
+    console.log('🔍 Filter change requested:', filters);
+    searchEvents(filters);
+  };
+
+  const handleClearFilters = () => {
+    console.log('🧹 Clearing filters');
+    clearFilters();
+    setShowFilterPanel(false);
+  };
+
+  return (
+    <div className="w-full h-screen bg-gray-900 relative" style={{ pointerEvents: 'auto' }}>
+      <MapErrorBoundary>
+        <LoadingOverlay 
+          isGettingLocation={isGettingLocation}
+          locationPermissionDenied={locationPermissionDenied}
+          isMapLoaded={isMapLoaded}
+        />
+        <MapContainer
+          center={mapCenter}
+          zoom={14}
+          minZoom={11}
+          maxZoom={20}
+          zoomControl={true}
+          className="w-full h-full"
+          style={{ pointerEvents: 'auto' }}
+          maxBounds={bangaloreBounds}
+          maxBoundsViscosity={1.0}
+          whenReady={() => setIsMapLoaded(true)}
+        >
+          {/* OpenStreetMap tiles - dark theme */}
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          
+          <MapContent 
+            userLocation={{ lat: mapCenter[0], lng: mapCenter[1] }}
+            showUserMarker={!isGettingLocation && !locationPermissionDenied && (mapCenter[0] !== 12.9716 || mapCenter[1] !== 77.5946)}
+            shouldCenterOnUser={!isGettingLocation && !locationPermissionDenied && (mapCenter[0] !== 12.9716 || mapCenter[1] !== 77.5946)}
+          />
+        </MapContainer>
+        
+        {/* Filter Toggle Button */}
+        <Button
+          onClick={() => setShowFilterPanel(!showFilterPanel)}
+          className={`absolute top-24 left-4 z-[1000] shadow-lg ${activeFilters ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
+          size="lg"
+        >
+          <Filter className="w-5 h-5 mr-2" />
+          {activeFilters ? `Filters Active (${filteredEvents.length} events)` : 'Filter Events'}
+        </Button>
+
+        {/* Clear Filters Button (when filters are active) */}
+        {activeFilters && (
+          <Button
+            onClick={handleClearFilters}
+            variant="destructive"
+            className="absolute top-24 left-64 z-[1000] shadow-lg"
+            size="lg"
+          >
+            <X className="w-5 h-5 mr-2" />
+            Clear Filters
+          </Button>
+        )}
+
+        {/* Filter Panel */}
+        {showFilterPanel && (
+          <FilterPanel
+            onFilterChange={handleFilterChange}
+            onClose={() => setShowFilterPanel(false)}
+            userLocation={userLocation}
+          />
+        )}
+
+        {/* Events List */}
+        {showEventsList && filteredEvents.length > 0 && (
+          <EventsList
+            events={filteredEvents}
+            onEventClick={handleMarkerClick}
+            onClose={() => setShowEventsList(false)}
+          />
+        )}
+
+        {/* Filter Status Bar */}
+        {activeFilters && (
+          <FilterStatusBar
+            filters={activeFilters}
+            eventCount={filteredEvents.length}
+            onClear={handleClearFilters}
+          />
+        )}
+        
+        <Navbar />
+      </MapErrorBoundary>
+    </div>
   );
 }
 

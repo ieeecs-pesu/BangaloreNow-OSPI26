@@ -10,11 +10,15 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Map, User, Settings, LogOut, UserCircle } from 'lucide-react';
+import { SearchBar } from './SearchBar';
+import { useMapState } from './mapStateContext';
 
 const Navbar = ({ isMapMoving = false }) => {
   const [currentText, setCurrentText] = useState('Bangalore');
   const [isAnimating, setIsAnimating] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  
+  const { userLocation, handleMarkerClick } = useMapState();
   
   // Initial load animation
   useEffect(() => {
@@ -44,8 +48,12 @@ const Navbar = ({ isMapMoving = false }) => {
     // Add your navigation logic here
   };
 
+  const handleEventSelect = (eventId) => {
+    handleMarkerClick(eventId);
+  };
+
   return (
-    <nav className="fixed top-2 left-1/2 transform -translate-x-1/2 z-[9999] w-full max-w-3xl px-4">
+    <nav className="fixed top-2 left-1/2 transform -translate-x-1/2 z-[9999] w-full max-w-5xl px-4">
       <div className={`bg-card border border-border shadow-2xl rounded-2xl transform origin-center ${
         !isLoaded 
           ? 'scale-x-0 opacity-0' 
@@ -53,7 +61,7 @@ const Navbar = ({ isMapMoving = false }) => {
             ? 'navbar-collapse'
             : 'navbar-expand'
       }`}>
-        <div className={`flex items-center justify-between h-12 px-4 transition-opacity duration-300 ${
+        <div className={`flex items-center justify-between gap-4 h-16 px-4 transition-opacity duration-300 ${
           isMapMoving ? 'opacity-0' : 'opacity-100'
         }`}>
           {/* Logo/Brand */}
@@ -74,19 +82,16 @@ const Navbar = ({ isMapMoving = false }) => {
             </h1>
           </div>
 
-          {/* Center Navigation - Desktop */}
-          <div className="hidden md:flex items-center space-x-4">
-            <button
-              onClick={() => handleNavigation('map')}
-              className="flex items-center px-3 py-2 rounded-xl text-gray-300 hover:text-accent hover:bg-secondary/60 transition-all duration-200 font-medium"
-            >
-              <Map className="w-4 h-4 mr-2" />
-              Map
-            </button>
+          {/* Center - Search Bar */}
+          <div className="flex-1 max-w-2xl">
+            <SearchBar 
+              onEventSelect={handleEventSelect}
+              userLocation={userLocation}
+            />
           </div>
 
-          {/* Right side - Account (Desktop) and Mobile Navigation */}
-          <div className="flex items-center">
+          {/* Right side - Account */}
+          <div className="flex items-center flex-shrink-0">
             {/* Desktop Account */}
             <div className="hidden md:block">
               <DropdownMenu>

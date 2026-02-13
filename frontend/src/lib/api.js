@@ -19,6 +19,21 @@ export const getApiUrl = (endpoint) => {
 export const API_ENDPOINTS = {
   GET_ALL_EVENTS: 'api/get-all-events',
   GET_EVENT_DETAILS: (eventId) => `api/get-event-details/${eventId}`,
+  SEARCH_EVENTS: 'api/search-events',
+  FILTER_OPTIONS: 'api/filter-options',
+};
+
+// Helper function to build query string from filters
+export const buildSearchQuery = (filters) => {
+  const params = new URLSearchParams();
+  
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      params.append(key, value);
+    }
+  });
+  
+  return params.toString();
 };
 
 // Export environment variables for use in components
@@ -31,5 +46,6 @@ export const ENV = {
 export default {
   getApiUrl,
   API_ENDPOINTS,
+  buildSearchQuery,
   ENV,
 };
