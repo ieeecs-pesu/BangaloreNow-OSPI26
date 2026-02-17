@@ -7,10 +7,7 @@ import OptimizedMarker from './OptimizedMarker.jsx';
 import MapErrorBoundary from './MapErrorBoundary.jsx';
 import Navbar from './Navbar.jsx';
 import { FilterPanel } from './FilterPanel.jsx';
-import { EventsList } from './EventsList.jsx';
 import { FilterStatusBar } from './FilterStatusBar.jsx';
-import { Button } from './ui/button.jsx';
-import { Filter, X } from 'lucide-react';
 import '../leaflet-custom.css';
 
 // Fix Leaflet default marker icon issue
@@ -188,6 +185,7 @@ const OptimizedMapComponent = () => {
   const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
   const [isGettingLocation, setIsGettingLocation] = useState(true);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
+  const [userCoordinates, setUserCoordinates] = useState(null);
 
   // Get user's current location on initial load
   useEffect(() => {
@@ -212,6 +210,7 @@ const OptimizedMapComponent = () => {
           ];
           
           setMapCenter(userLocation);
+          setUserCoordinates({ lat: position.coords.latitude, lng: position.coords.longitude });
           setIsGettingLocation(false);
           setIsMapLoaded(true);
         },
@@ -254,6 +253,7 @@ const OptimizedMapComponent = () => {
         locationPermissionDenied={locationPermissionDenied}
         isMapLoaded={isMapLoaded}
         setIsMapLoaded={setIsMapLoaded}
+        userCoordinates={userCoordinates}
       />
     </MapStateProvider>
   );
@@ -266,20 +266,26 @@ const MapContentWrapper = ({
   isGettingLocation, 
   locationPermissionDenied, 
   isMapLoaded,
-  setIsMapLoaded 
+  setIsMapLoaded,
+  userCoordinates
 }) => {
   const {
     showFilterPanel,
     setShowFilterPanel,
-    showEventsList,
-    setShowEventsList,
     searchEvents,
     clearFilters,
     userLocation,
     filteredEvents,
     activeFilters,
-    handleMarkerClick
+    handleMarkerClick,
+    setUserLocation
   } = useMapState();
+
+  useEffect(() => {
+    if (userCoordinates?.lat && userCoordinates?.lng) {
+      setUserLocation(userCoordinates);
+    }
+  }, [userCoordinates, setUserLocation]);
 
   const handleFilterChange = (filters) => {
     console.log('🔍 Filter change requested:', filters);
@@ -325,44 +331,13 @@ const MapContentWrapper = ({
           />
         </MapContainer>
         
-        {/* Filter Toggle Button */}
-        <Button
-          onClick={() => setShowFilterPanel(!showFilterPanel)}
-          className={`absolute top-24 left-4 z-[1000] shadow-lg ${activeFilters ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
-          size="lg"
-        >
-          <Filter className="w-5 h-5 mr-2" />
-          {activeFilters ? `Filters Active (${filteredEvents.length} events)` : 'Filter Events'}
-        </Button>
-
-        {/* Clear Filters Button (when filters are active) */}
-        {activeFilters && (
-          <Button
-            onClick={handleClearFilters}
-            variant="destructive"
-            className="absolute top-24 left-64 z-[1000] shadow-lg"
-            size="lg"
-          >
-            <X className="w-5 h-5 mr-2" />
-            Clear Filters
-          </Button>
-        )}
-
         {/* Filter Panel */}
         {showFilterPanel && (
           <FilterPanel
             onFilterChange={handleFilterChange}
             onClose={() => setShowFilterPanel(false)}
             userLocation={userLocation}
-          />
-        )}
-
-        {/* Events List */}
-        {showEventsList && filteredEvents.length > 0 && (
-          <EventsList
-            events={filteredEvents}
-            onEventClick={handleMarkerClick}
-            onClose={() => setShowEventsList(false)}
+            activeFilters={activeFilters}
           />
         )}
 

@@ -1,6 +1,6 @@
 import { Badge } from './ui/badge';
 import { Card } from './ui/card';
-import { Filter, MapPin, Calendar, Search, X } from 'lucide-react';
+import { Filter, MapPin, Calendar, Search, X, SlidersHorizontal } from 'lucide-react';
 import { Button } from './ui/button';
 
 export function FilterStatusBar({ filters, eventCount, onClear }) {
@@ -13,7 +13,11 @@ export function FilterStatusBar({ filters, eventCount, onClear }) {
   }
 
   if (filters.max_distance_km) {
-    activeFiltersList.push({ icon: MapPin, label: `Within ${filters.max_distance_km}km` });
+    const distanceValue = Number(filters.max_distance_km);
+    const label = Number.isNaN(distanceValue)
+      ? `Within ${filters.max_distance_km}km`
+      : `Within ${distanceValue} km`;
+    activeFiltersList.push({ icon: MapPin, label });
   }
 
   if (filters.start_date || filters.end_date) {
@@ -33,23 +37,37 @@ export function FilterStatusBar({ filters, eventCount, onClear }) {
     activeFiltersList.push({ icon: Filter, label: filters.organizer });
   }
 
+  if (filters.sort_by && filters.sort_by !== 'distance') {
+    const friendlySort =
+      filters.sort_by === 'date'
+        ? 'Soonest first'
+        : filters.sort_by === 'name'
+          ? 'A → Z'
+          : filters.sort_by;
+    activeFiltersList.push({ icon: SlidersHorizontal, label: friendlySort });
+  }
+
+  const appliedFiltersCount = activeFiltersList.length;
+
   return (
-    <Card className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-[1000] bg-white/95 backdrop-blur shadow-lg px-4 py-3 max-w-4xl">
-      <div className="flex items-center gap-4 flex-wrap">
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-blue-600" />
-          <span className="font-semibold text-sm text-gray-900">
-            {eventCount} event{eventCount !== 1 ? 's' : ''} found
+    <Card className="pointer-events-auto fixed bottom-6 left-1/2 z-[1000] w-[min(92vw,64rem)] -translate-x-1/2 rounded-3xl border border-white/30 bg-white/95 px-5 py-4 shadow-[0_20px_60px_rgba(15,23,42,0.35)] backdrop-blur-2xl">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+          <Filter className="h-4 w-4 text-slate-500" />
+          <span>
+            {appliedFiltersCount} filter{appliedFiltersCount === 1 ? '' : 's'} applied
           </span>
         </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
+        <Badge className="rounded-full bg-slate-900 text-white">
+          {eventCount} match{eventCount === 1 ? '' : 'es'}
+        </Badge>
+        <div className="flex flex-1 flex-wrap gap-2 text-xs font-medium text-slate-600">
           {activeFiltersList.map((filter, index) => {
             const Icon = filter.icon;
             return (
-              <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                <Icon className="w-3 h-3" />
-                <span className="text-xs">{filter.label}</span>
+              <Badge key={`${filter.label}-${index}`} variant="secondary" className="flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100 text-slate-700">
+                <Icon className="h-3.5 w-3.5" />
+                <span>{filter.label}</span>
               </Badge>
             );
           })}
@@ -59,10 +77,10 @@ export function FilterStatusBar({ filters, eventCount, onClear }) {
           onClick={onClear}
           variant="ghost"
           size="sm"
-          className="ml-auto"
+          className="ml-auto text-slate-600 hover:text-slate-900"
         >
-          <X className="w-4 h-4 mr-1" />
-          Clear
+          <X className="mr-1 h-4 w-4" />
+          Clear filters
         </Button>
       </div>
     </Card>
