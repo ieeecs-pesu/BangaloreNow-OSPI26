@@ -51,6 +51,12 @@ The system follows a structured ETL-driven pipeline:
 
 ---
 
+## Project Setup and Troubleshooting
+
+Know about how to setup your development environment, env variables, common errors and their fixes [here](https://github.com/ieeecs-pesu/BangaloreNow-OSPI26/blob/main/SETUP_GUIDE.md)
+
+---
+
 ## 👥 Contributors
 
 | | |
@@ -63,6 +69,11 @@ The system follows a structured ETL-driven pipeline:
 | **SaiRishi** | [github.com/sairishigangarapu](https://github.com/sairishigangarapu) |
 | **Lalith** | [github.com/lalithbseervi](https://github.com/lalithbseervi) |
 | **Harsh Pandya** | [github.com/Seaweed-Boi](https://github.com/Seaweed-Boi) |
+
+
+## Acknowledgements
+
+Special thanks to **Chinmay Mahtre** for his invaluable mentorship and [**Siddarth**](https://github.com/SiddarthAA) (maintainer) for guiding us throughout the IEEE-CS OSPI Program, during which this project was developed.  
 
 ---
 
