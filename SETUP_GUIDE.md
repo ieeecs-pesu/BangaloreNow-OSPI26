@@ -51,6 +51,21 @@ cd frontend
 npm install
 ```
 
+### 4. Setup environment variables
+
+**DB Setup**
+If you are using Supabase, you can find the following under Project Settings -> Database:
+POSTGRES_SERVER=db.your-project-id.supabase.co
+POSTGRES_PORT=5432
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=your-password
+POSTGRES_DB=postgres
+SUPABASE_URL=https://your-project-id.supabase.co
+SUPABASE_SERVICE_ROLE_KEY
+
+**Google Geocoding API: used to generate lat/long for events**
+base_geo=
+
 ---
 
 ## 🏃 Running the Project
@@ -150,4 +165,3 @@ warp-cli connect
 1. **Always connect WARP first** before starting the backend
 2. The `.env` file contains database credentials - keep it secure
 3. Backend uses port 8000, frontend uses port 5173
-4. You need 183 events in the database for the map to display properly
